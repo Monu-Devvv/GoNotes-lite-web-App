@@ -1,5 +1,5 @@
 // Base URL of our backend
-const BASE_URL = 'http://localhost:5000/api/notes'
+const BASE_URL = 'https://notes-app-backend-pnn6.onrender.com'
 
 // Get all notes from database
 export async function fetchNotes() {
