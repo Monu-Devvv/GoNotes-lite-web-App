@@ -1,33 +1,40 @@
-// Base URL of our backend
-const BASE_URL = 'https://notes-app-backend-pnn6.onrender.com'
+const BASE_URL = `${import.meta.env.VITE_API_URL}/api/notes`
 
-// Get all notes from database
+// get token from localStorage
+function getHeaders() {
+  const token = localStorage.getItem('token')
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`   // send token with every request
+  }
+}
+
 export async function fetchNotes() {
-  const res = await fetch(BASE_URL)
+  const res = await fetch(BASE_URL, { headers: getHeaders() })
   return res.json()
 }
 
-// Create a new note in database
 export async function createNote(noteData) {
   const res = await fetch(BASE_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getHeaders(),
     body: JSON.stringify(noteData)
   })
   return res.json()
 }
 
-// Update an existing note by its id
 export async function updateNote(id, changes) {
   const res = await fetch(`${BASE_URL}/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getHeaders(),
     body: JSON.stringify(changes)
   })
   return res.json()
 }
 
-// Delete a note by its id
 export async function deleteNote(id) {
-  await fetch(`${BASE_URL}/${id}`, { method: 'DELETE' })
+  await fetch(`${BASE_URL}/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders()
+  })
 }

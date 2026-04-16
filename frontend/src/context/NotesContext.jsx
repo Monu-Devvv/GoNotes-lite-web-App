@@ -6,26 +6,36 @@ import {
   updateNote as apiUpdateNote,
   deleteNote as apiDeleteNote
 } from '../api/notes'
+import { useAuth } from './AuthContext'
 
 const NotesContext = createContext()
 
 export function NotesProvider({ children }) {
-  // notes now come from MongoDB, not localStorage
+
+  // get logged in user from AuthContext
+  const { user } = useAuth()
+
+  // all notes from MongoDB
   const [notes, setNotes] = useState([])
 
-  // loading state so UI can show spinner
+  // loading state for spinner
   const [loading, setLoading] = useState(true)
 
+  // which note is currently open in editor
   const [selectedNoteId, setSelectedNoteId] = useState(null)
+
+  // search input value
   const [searchQuery, setSearchQuery] = useState('')
+
+  // which category is selected in sidebar
   const [activeCategory, setActiveCategory] = useState('All')
 
-  // theme still uses localStorage (no backend needed for this)
+  // theme saved in localStorage
   const [isDark, setIsDark] = useLocalStorage('theme-dark', false)
 
   const categories = ['All', 'Personal', 'Work', 'Ideas', 'Others']
 
-  // Apply dark/light theme to <html>
+  // ── Apply dark/light theme to <html> ──
   useEffect(() => {
     document.documentElement.setAttribute(
       'data-theme',
@@ -33,23 +43,38 @@ export function NotesProvider({ children }) {
     )
   }, [isDark])
 
-  function toggleTheme() { setIsDark(prev => !prev) }
+  function toggleTheme() {
+    setIsDark(prev => !prev)
+  }
 
-  // ── Load all notes when app starts ──
+  // ── Load notes when user logs in, clear when logs out ──
   useEffect(() => {
     async function loadNotes() {
       try {
         setLoading(true)
         const data = await fetchNotes()
-        setNotes(data)
+
+        // backend might return error object instead of array
+        // always make sure notes is an array
+        setNotes(Array.isArray(data) ? data : [])
       } catch (err) {
         console.error('Failed to load notes:', err)
+        setNotes([]) // fallback to empty array
       } finally {
         setLoading(false)
       }
     }
-    loadNotes()
-  }, [])
+
+    if (user) {
+      // user just logged in → fetch their notes
+      loadNotes()
+    } else {
+      // user logged out → clear everything
+      setNotes([])
+      setSelectedNoteId(null)
+      setLoading(false)
+    }
+  }, [user]) // runs every time user changes (login/logout)
 
   // ── Create a new note ──
   async function addNote() {
@@ -59,9 +84,14 @@ export function NotesProvider({ children }) {
         content: '',
         category: 'Personal',
       })
-      // add new note to top of list
-      setNotes(prev => [newNote, ...prev])
-      setSelectedNoteId(newNote._id)  // MongoDB uses _id not id
+
+      // make sure we got a valid note back
+      if (newNote._id) {
+        // add to top of list
+        setNotes(prev => [newNote, ...prev])
+        // open it in editor
+        setSelectedNoteId(newNote._id)
+      }
     } catch (err) {
       console.error('Failed to create note:', err)
     }
@@ -71,10 +101,14 @@ export function NotesProvider({ children }) {
   async function updateNote(id, changes) {
     try {
       const updated = await apiUpdateNote(id, changes)
-      // replace old note with updated one in state
-      setNotes(prev =>
-        prev.map(note => note._id === id ? updated : note)
-      )
+
+      // make sure we got a valid note back
+      if (updated._id) {
+        // replace old note with updated one
+        setNotes(prev =>
+          prev.map(note => note._id === id ? updated : note)
+        )
+      }
     } catch (err) {
       console.error('Failed to update note:', err)
     }
@@ -84,16 +118,18 @@ export function NotesProvider({ children }) {
   async function deleteNote(id) {
     try {
       await apiDeleteNote(id)
-      // remove from state
+
+      // remove from list
       setNotes(prev => prev.filter(note => note._id !== id))
-      // deselect if deleted note was selected
+
+      // deselect if deleted note was open
       if (selectedNoteId === id) setSelectedNoteId(null)
     } catch (err) {
       console.error('Failed to delete note:', err)
     }
   }
 
-  // ── Filter notes by search + category ──
+  // ── Filter notes by search query + active category ──
   const filteredNotes = notes.filter(note => {
     const matchesSearch =
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -105,7 +141,7 @@ export function NotesProvider({ children }) {
     return matchesSearch && matchesCategory
   })
 
-  // find the full selected note object
+  // find the full selected note object by id
   const selectedNote = notes.find(note => note._id === selectedNoteId) || null
 
   return (
@@ -126,7 +162,7 @@ export function NotesProvider({ children }) {
         deleteNote,
         isDark,
         toggleTheme,
-        loading,          // so components can show loading state
+        loading,
       }}
     >
       {children}

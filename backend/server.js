@@ -1,34 +1,38 @@
+process.on('uncaughtException', (err) => {
+  console.error('CRASH:', err.message)
+  process.exit(1)
+})
+
+process.on('unhandledRejection', (err) => {
+  console.error('UNHANDLED REJECTION:', err.message)
+  process.exit(1)
+})
+
 import express from 'express'
 import mongoose from 'mongoose'
 import cors from 'cors'
-import dotenv from 'dotenv'
 import notesRouter from './routes/notes.js'
+import authRouter from './routes/auth.js'         
 import { errorHandler } from './middleware/errorHandler.js'
-
-dotenv.config()
 
 const app = express()
 
-// Middlewares
-app.use(cors({ origin: 'http://localhost:5173' }))  // allow React app
-app.use(express.json())                              // parse JSON body
+app.use(cors({ origin: '*' }))
+app.use(express.json())
 
-// Routes
+app.use('/api/auth',  authRouter)                
 app.use('/api/notes', notesRouter)
 
-// Health check
 app.get('/', (req, res) => res.send('Notes API running ✅'))
-
-// Error handler (always last)
 app.use(errorHandler)
 
-// Connect DB then start server
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('MongoDB connected ✅')
-    app.listen(process.env.PORT, () =>
-      console.log(`Server running on http://localhost:${process.env.PORT} ✅`)
-    )
-  })
-  .catch(err => console.error('MongoDB connection failed ❌', err))
+try {
+  await mongoose.connect(process.env.MONGO_URI)
+  console.log('MongoDB connected ✅')
+  app.listen(process.env.PORT || 5000, () =>
+    console.log(`Server running on port ${process.env.PORT || 5000} ✅`)
+  )
+} catch (err) {
+  console.error('MongoDB connection failed ❌', err.message)
+  process.exit(1)
+}
