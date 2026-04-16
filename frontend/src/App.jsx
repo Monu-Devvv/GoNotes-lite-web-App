@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { NotesProvider, useNotes } from './context/NotesContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import Sidebar from './components/Sidebar/SideBar'
-import NoteList from './components/NoteList/NoteList'
-import NoteEditor from './components/NoteEditor/NoteEditor'
+import Sidebar from './Components/Sidebar/SideBar'
+import NoteList from './Components/NoteList/NoteList'
+import NoteEditor from './Components/NoteEditor/NoteEditor'
 import AuthPage from './pages/AuthPage'
 import './App.css'
 
