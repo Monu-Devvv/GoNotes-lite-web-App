@@ -4,79 +4,61 @@ import {
   fetchNotes,
   createNote,
   updateNote as apiUpdateNote,
-  deleteNote as apiDeleteNote
+  deleteNote as apiDeleteNote,
 } from '../api/notes'
 import { useAuth } from './AuthContext'
 
 const NotesContext = createContext()
 
 export function NotesProvider({ children }) {
-
-  // get logged in user from AuthContext
   const { user } = useAuth()
 
-  // all notes from MongoDB
   const [notes, setNotes] = useState([])
-
-  // loading state for spinner
   const [loading, setLoading] = useState(true)
-
-  // which note is currently open in editor
   const [selectedNoteId, setSelectedNoteId] = useState(null)
-
-  // search input value
   const [searchQuery, setSearchQuery] = useState('')
-
-  // which category is selected in sidebar
   const [activeCategory, setActiveCategory] = useState('All')
 
-  // theme saved in localStorage
+  // theme saved in localStorage so it persists
   const [isDark, setIsDark] = useLocalStorage('theme-dark', false)
 
   const categories = ['All', 'Personal', 'Work', 'Ideas', 'Others']
 
-  // ── Apply dark/light theme to <html> ──
+  // apply dark/light class to <html>
   useEffect(() => {
-    document.documentElement.setAttribute(
-      'data-theme',
-      isDark ? 'dark' : 'light'
-    )
+    if (isDark) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
   }, [isDark])
 
-  function toggleTheme() {
-    setIsDark(prev => !prev)
-  }
+  function toggleTheme() { setIsDark(prev => !prev) }
 
-  // ── Load notes when user logs in, clear when logs out ──
+  // load notes when user logs in, clear when logs out
   useEffect(() => {
     async function loadNotes() {
       try {
         setLoading(true)
         const data = await fetchNotes()
-
-        // backend might return error object instead of array
-        // always make sure notes is an array
+        // always make sure we set an array (backend might return error object)
         setNotes(Array.isArray(data) ? data : [])
-      } catch (err) {
-        console.error('Failed to load notes:', err)
-        setNotes([]) // fallback to empty array
+      } catch {
+        setNotes([])
       } finally {
         setLoading(false)
       }
     }
 
     if (user) {
-      // user just logged in → fetch their notes
       loadNotes()
     } else {
-      // user logged out → clear everything
       setNotes([])
       setSelectedNoteId(null)
       setLoading(false)
     }
-  }, [user]) // runs every time user changes (login/logout)
+  }, [user])
 
-  // ── Create a new note ──
   async function addNote() {
     try {
       const newNote = await createNote({
@@ -84,12 +66,8 @@ export function NotesProvider({ children }) {
         content: '',
         category: 'Personal',
       })
-
-      // make sure we got a valid note back
       if (newNote._id) {
-        // add to top of list
         setNotes(prev => [newNote, ...prev])
-        // open it in editor
         setSelectedNoteId(newNote._id)
       }
     } catch (err) {
@@ -97,74 +75,45 @@ export function NotesProvider({ children }) {
     }
   }
 
-  // ── Update an existing note ──
   async function updateNote(id, changes) {
     try {
       const updated = await apiUpdateNote(id, changes)
-
-      // make sure we got a valid note back
       if (updated._id) {
-        // replace old note with updated one
-        setNotes(prev =>
-          prev.map(note => note._id === id ? updated : note)
-        )
+        setNotes(prev => prev.map(n => n._id === id ? updated : n))
       }
     } catch (err) {
       console.error('Failed to update note:', err)
     }
   }
 
-  // ── Delete a note ──
   async function deleteNote(id) {
     try {
       await apiDeleteNote(id)
-
-      // remove from list
-      setNotes(prev => prev.filter(note => note._id !== id))
-
-      // deselect if deleted note was open
+      setNotes(prev => prev.filter(n => n._id !== id))
       if (selectedNoteId === id) setSelectedNoteId(null)
     } catch (err) {
       console.error('Failed to delete note:', err)
     }
   }
 
-  // ── Filter notes by search query + active category ──
   const filteredNotes = notes.filter(note => {
-    const matchesSearch =
+    const matchSearch =
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       note.content.toLowerCase().includes(searchQuery.toLowerCase())
-
-    const matchesCategory =
+    const matchCategory =
       activeCategory === 'All' || note.category === activeCategory
-
-    return matchesSearch && matchesCategory
+    return matchSearch && matchCategory
   })
 
-  // find the full selected note object by id
-  const selectedNote = notes.find(note => note._id === selectedNoteId) || null
+  const selectedNote = notes.find(n => n._id === selectedNoteId) || null
 
   return (
-    <NotesContext.Provider
-      value={{
-        notes,
-        filteredNotes,
-        selectedNote,
-        selectedNoteId,
-        setSelectedNoteId,
-        searchQuery,
-        setSearchQuery,
-        activeCategory,
-        setActiveCategory,
-        categories,
-        addNote,
-        updateNote,
-        deleteNote,
-        isDark,
-        toggleTheme,
-        loading,
-      }}
-    >
+    <NotesContext.Provider value={{
+      notes, filteredNotes, selectedNote, selectedNoteId, setSelectedNoteId,
+      searchQuery, setSearchQuery, activeCategory, setActiveCategory,
+      categories, addNote, updateNote, deleteNote,
+      isDark, toggleTheme, loading,
+    }}>
       {children}
     </NotesContext.Provider>
   )

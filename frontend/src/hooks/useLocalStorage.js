@@ -5,8 +5,7 @@ function useLocalStorage(key, initialValue) {
     try {
       const item = window.localStorage.getItem(key)
       return item ? JSON.parse(item) : initialValue
-    } catch (error) {
-      console.error('Error reading localStorage:', error)
+    } catch {
       return initialValue
     }
   })
@@ -14,8 +13,8 @@ function useLocalStorage(key, initialValue) {
   useEffect(() => {
     try {
       window.localStorage.setItem(key, JSON.stringify(storedValue))
-    } catch (error) {
-      console.error('Error writing localStorage:', error)
+    } catch {
+      // ignore
     }
   }, [key, storedValue])
 
