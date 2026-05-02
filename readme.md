@@ -208,7 +208,3 @@ Authorization: Bearer <token>
 GitHub: [@Monu-Devvv](https://github.com/Monu-Devvv)
 
 ---
-
-## 📄 License
-
-MIT — free to use and modify.
