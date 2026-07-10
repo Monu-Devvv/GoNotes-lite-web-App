@@ -1,7 +1,7 @@
 # 📝 My Notes — Full Stack Notes App (Frontend)
 
 A beautiful, mobile-optimised notes app built with **React + Tailwind CSS**.  
-Features Apple-style liquid glass UI, JWT authentication, and full CRUD backed by a MongoDB API.
+Feature Apple-style liquid glass UI, JWT authentication, and full CRUD backed by a MongoDB API.
 
 ---
 
